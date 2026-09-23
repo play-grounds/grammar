@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Slovíčka – Czech nouns</title>
+<meta name="description" content="Spaced repetition for Czech nouns, A1 to B2, with picture cards colour-coded by gender. Works offline.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#fff7ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1814" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="bar">
+  <button class="link" id="home-btn" aria-label="Home">Slovíčka</button>
+  <span id="bar-stats" aria-live="polite"></span>
+</header>
+
+<main>
+  <!-- home -->
+  <section id="home" hidden>
+    <div class="tiles">
+      <div class="tile"><b id="n-due">–</b><span>due</span></div>
+      <div class="tile"><b id="n-new">–</b><span>new today</span></div>
+      <div class="tile"><b id="n-learned">–</b><span>learned</span></div>
+    </div>
+    <button class="primary" id="start">Start</button>
+    <p class="hint" id="home-hint"></p>
+
+    <details class="settings">
+      <summary>Settings</summary>
+      <fieldset>
+        <legend>New cards from</legend>
+        <div class="chips" id="levels"></div>
+      </fieldset>
+      <label class="row">New cards per day
+        <input type="number" id="per-day" min="0" max="100" step="1" inputmode="numeric">
+      </label>
+      <fieldset>
+        <legend>Question side</legend>
+        <div class="chips">
+          <label><input type="radio" name="dir" value="pic"> Picture → Czech</label>
+          <label><input type="radio" name="dir" value="cs"> Czech → meaning</label>
+        </div>
+      </fieldset>
+      <div class="row buttons">
+        <button id="export">Export progress</button>
+        <label class="button">Import<input type="file" id="import" accept="application/json" hidden></label>
+        <button id="reset" class="danger">Reset</button>
+      </div>
+    </details>
+  </section>
+
+  <!-- review -->
+  <section id="review" hidden>
+    <article class="card" id="card">
+      <div class="pic" id="pic"></div>
+      <div class="cs" id="cs" lang="cs"></div>
+      <div class="en" id="en"></div>
+      <div class="meta" id="meta"></div>
+    </article>
+    <div class="actions" id="show-row">
+      <button class="primary" id="show">Show <kbd>Space</kbd></button>
+    </div>
+    <div class="actions grades" id="grade-row" hidden>
+      <button data-grade="0" class="g0">Again<small></small></button>
+      <button data-grade="1" class="g1">Hard<small></small></button>
+      <button data-grade="2" class="g2">Good<small></small></button>
+      <button data-grade="3" class="g3">Easy<small></small></button>
+    </div>
+    <p class="hint"><button class="link" id="undo" disabled>Undo</button></p>
+  </section>
+
+  <!-- done / waiting -->
+  <section id="done" hidden>
+    <p class="big" id="done-msg"></p>
+    <button class="primary" id="done-home">Back</button>
+  </section>
+
+  <p id="loading" class="hint">Loading cards…</p>
+</main>
+
+<footer>
+  Pictures and words from <a href="https://github.com/czech-grammar/nouns">czech-grammar/nouns</a>.
+  Progress is stored in this browser only; export it to move devices.
+</footer>
+
+<script src="srs.js"></script>
+<script src="app.js"></script>
