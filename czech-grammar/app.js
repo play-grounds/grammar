@@ -12,7 +12,7 @@
 // s psem, dva psi); words missed there come back in later bonus rounds.
 (() => {
   const KEY = 'slovicka-v1';
-  const DATA_VERSION = 6;   // bump with cards.json (and in sw.js), so a new app never runs on an old deck
+  const DATA_VERSION = 7;   // bump with cards.json (and in sw.js), so a new app never runs on an old deck
   const LEVELS = ['A1', 'A2', 'B1', 'B2'];
   const GENDER = { ma: 'mužský životný', mi: 'mužský neživotný', f: 'ženský', n: 'střední' };
   const GENDER_SHORT = { ma: 'Ma', mi: 'Mi', f: 'F', n: 'N' };

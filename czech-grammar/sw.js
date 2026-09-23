@@ -2,8 +2,8 @@
 // files in step, but a network that hangs gives way to the cache after 4 s
 // (the fetch still finishes in the background and refreshes the cache).
 // Bump VERSION when the list of files changes.
-const VERSION = 'slovicka-6';
-const DATA = 'cards.json?v=6';   // keep in step with DATA_VERSION in app.js
+const VERSION = 'slovicka-7';
+const DATA = 'cards.json?v=7';   // keep in step with DATA_VERSION in app.js
 const FILES = ['./', 'index.html', 'app.css', 'srs.js', 'app.js', DATA,
   'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 const TIMEOUT = 4000;
