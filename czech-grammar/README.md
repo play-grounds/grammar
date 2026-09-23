@@ -43,6 +43,9 @@ a day and new words wait.
   picture labels that spell the answer carry `class="ans"` (hidden while asking)
   and `forms` is the checked declension from `declension.json` (Wiktionary,
   CC BY-SA), cleaned of notes and rare variants.
+- `og.png` – the 1200×630 social preview, rendered from the deck by
+  `python3 tools/og.py` (needs the snap Chromium); the Open Graph and Twitter
+  tags in `index.html` point at it.
 - `sw.js`, `manifest.webmanifest`, `icon*` – installable; network first with a
   4 s fallback to the cache. When `cards.json` changes, bump `DATA_VERSION` in
   `app.js` and `DATA` and `VERSION` in `sw.js` together.
