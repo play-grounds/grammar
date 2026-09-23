@@ -3,90 +3,161 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Slovíčka – Czech nouns</title>
-<meta name="description" content="Spaced repetition for Czech nouns, A1 to B2, with picture cards colour-coded by gender. Works offline.">
+<title>Slovíčka – Czech nouns game</title>
+<meta name="description" content="Learn 1,576 Czech nouns, A1 to B2, as a picture game with spaced repetition. Works offline.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#fff7ea" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1b1814" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<header class="bar">
-  <button class="link" id="home-btn" aria-label="Home">Slovíčka</button>
-  <span id="bar-stats" aria-live="polite"></span>
-</header>
+<div id="sr" class="sr-only" role="status" aria-live="polite"></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<div id="banner" class="banner" role="alert" hidden></div>
 
-<main>
-  <!-- home -->
-  <section id="home" hidden>
-    <div class="tiles">
-      <div class="tile"><b id="n-due">–</b><span>due</span></div>
-      <div class="tile"><b id="n-new">–</b><span>new today</span></div>
-      <div class="tile"><b id="n-learned">–</b><span>learned</span></div>
+<section id="loading" class="screen loading">
+  <img src="icon.svg" alt="" width="96" height="80">
+  <p id="loading-msg">Načítám… loading words</p>
+  <button class="secondary" id="loading-reset" hidden>Reset saved progress</button>
+</section>
+
+<!-- home -->
+<section id="home" class="screen" hidden>
+  <header class="top">
+    <h1 class="brand"><img src="icon.svg" alt="" width="36" height="30"> Slovíčka</h1>
+    <div class="pills">
+      <span class="pill streak" id="streak" role="img" aria-label="Streak: 0 days">🔥 <b>0</b><i id="freezes"></i></span>
+      <span class="pill level" id="level" role="img" aria-label="Level 1">⭐ <b>1</b></span>
     </div>
-    <button class="primary" id="start">Start</button>
-    <p class="hint" id="home-hint"></p>
+  </header>
 
-    <details class="settings">
-      <summary>Settings</summary>
-      <fieldset>
-        <legend>New cards from</legend>
-        <div class="chips" id="levels"></div>
-      </fieldset>
-      <label class="row">New cards per day
-        <input type="number" id="per-day" min="0" max="100" step="1" inputmode="numeric">
-      </label>
-      <fieldset>
-        <legend>Question side</legend>
-        <div class="chips">
-          <label><input type="radio" name="dir" value="pic"> Picture → Czech</label>
-          <label><input type="radio" name="dir" value="cs"> Czech → meaning</label>
-        </div>
-      </fieldset>
-      <div class="row buttons">
-        <button id="export">Export progress</button>
-        <label class="button">Import<input type="file" id="import" accept="application/json" hidden></label>
-        <button id="reset" class="danger">Reset</button>
-      </div>
-    </details>
+  <div class="goal" role="img" id="goal" aria-label="Today's goal">
+    <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+      <circle cx="60" cy="60" r="52" class="ring-bg"/>
+      <circle cx="60" cy="60" r="52" class="ring-fg" id="ring-fg"/>
+    </svg>
+    <div class="goal-text" aria-hidden="true">
+      <b id="goal-xp">0</b><span id="goal-of">/ 100 XP</span>
+      <small>today's goal</small>
+    </div>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><b id="n-due">0</b><span>to review</span></div>
+    <div class="tile"><b id="n-new">0</b><span>new words</span></div>
+    <div class="tile"><b id="n-album">0</b><span>in album</span></div>
+  </div>
+
+  <button class="primary big" id="play">Play</button>
+  <p class="hint" id="home-hint"></p>
+  <button class="secondary" id="more-new" hidden>+5 new words</button>
+  <button class="secondary" id="practice" hidden>Free practice</button>
+
+  <section class="quests" aria-labelledby="quests-h">
+    <h2 id="quests-h">Today's quests</h2>
+    <ul id="quests"></ul>
   </section>
 
-  <!-- review -->
-  <section id="review" hidden>
-    <article class="card" id="card">
-      <div class="pic" id="pic"></div>
-      <div class="cs" id="cs" lang="cs"></div>
-      <div class="en" id="en"></div>
-      <div class="meta" id="meta"></div>
-    </article>
-    <div class="actions" id="show-row">
-      <button class="primary" id="show">Show <kbd>Space</kbd></button>
+  <nav class="home-nav" aria-label="More">
+    <button class="nav-btn" id="open-album">📒 Album <small id="album-count"></small></button>
+    <button class="nav-btn" id="open-settings">⚙️ Settings</button>
+  </nav>
+
+  <div class="levelbar" aria-hidden="true"><div id="levelbar-fg"></div></div>
+  <p class="xp-line" id="xp-line"></p>
+</section>
+
+<!-- lesson -->
+<section id="lesson" class="screen" hidden>
+  <header class="lesson-top">
+    <button class="icon-btn" id="quit" aria-label="End lesson">✕</button>
+    <div class="progress" role="progressbar" aria-label="Lesson progress" aria-valuemin="0" id="progress"><div id="progress-fg"></div></div>
+    <div class="combo" id="combo" aria-hidden="true"><span id="combo-n"></span><div class="meter"><div id="combo-fg"></div></div></div>
+  </header>
+  <div class="stage" id="stage"></div>
+  <div class="feedback" id="feedback" hidden>
+    <div class="fb-body" id="fb-body"></div>
+    <button class="primary" id="fb-next">Continue</button>
+  </div>
+</section>
+
+<!-- summary -->
+<section id="summary" class="screen" hidden>
+  <div class="cat"><img src="icon.svg" alt="" width="72" height="60"><span class="bubble" id="sum-cat" lang="cs"></span></div>
+  <h1 id="sum-title">Lekce hotová!</h1>
+  <div class="sum-grid">
+    <div class="tile"><b id="sum-xp">0</b><span>XP</span></div>
+    <div class="tile"><b id="sum-acc">0%</b><span>correct</span></div>
+    <div class="tile"><b id="sum-combo">0</b><span>best combo</span></div>
+  </div>
+  <p class="sum-note" id="sum-note"></p>
+  <div id="sum-stickers"></div>
+  <div class="sum-words" id="sum-words"></div>
+  <p class="sum-next" id="sum-next"></p>
+  <button class="primary big" id="sum-again">Keep going</button>
+  <button class="secondary" id="sum-home">Home</button>
+  <button class="secondary small-link" id="sum-remind" hidden>📅 Add a daily reminder to my calendar</button>
+</section>
+
+<!-- album -->
+<section id="album" class="screen wide" hidden>
+  <header class="top">
+    <button class="icon-btn" id="album-back" aria-label="Back">←</button>
+    <h1>Album</h1>
+    <span class="pill" id="album-total"></span>
+  </header>
+  <div class="chips" id="album-levels" role="group" aria-label="Level"></div>
+  <div id="album-body"></div>
+</section>
+
+<!-- settings -->
+<section id="settings" class="screen" hidden>
+  <header class="top">
+    <button class="icon-btn" id="settings-back" aria-label="Back">←</button>
+    <h1>Settings</h1>
+    <span></span>
+  </header>
+  <div class="panel">
+    <fieldset>
+      <legend>New words come from</legend>
+      <div class="chips" id="levels"></div>
+    </fieldset>
+    <label class="row">New words per day <input type="number" id="per-day" min="0" max="100" inputmode="numeric"></label>
+    <label class="row">Daily goal <select id="goal-set"></select></label>
+    <label class="row">Lesson length <input type="number" id="lesson-len" min="5" max="50" inputmode="numeric"></label>
+    <label class="row">Sound effects <input type="checkbox" id="sound"></label>
+    <label class="row" id="speech-row">Say words aloud <input type="checkbox" id="speech"></label>
+    <p class="note" id="speech-note"></p>
+    <div class="row buttons">
+      <button id="export">Export progress</button>
+      <button id="import-btn">Import</button>
+      <button id="reset" class="danger">Reset</button>
     </div>
-    <div class="actions grades" id="grade-row" hidden>
-      <button data-grade="0" class="g0">Again<small></small></button>
-      <button data-grade="1" class="g1">Hard<small></small></button>
-      <button data-grade="2" class="g2">Good<small></small></button>
-      <button data-grade="3" class="g3">Easy<small></small></button>
-    </div>
-    <p class="hint"><button class="link" id="undo" disabled>Undo</button></p>
-  </section>
+    <input type="file" id="import" accept="application/json,.json" class="sr-only" tabindex="-1" aria-hidden="true">
+  </div>
+  <div class="about">
+    <p>Keys: <kbd>1</kbd>–<kbd>4</kbd> answer, <kbd>Enter</kbd> continue, type letters in spelling rounds, <kbd>Backspace</kbd> removes a letter, <kbd>Esc</kbd> ends the lesson.</p>
+    <p>Pictures and words: <a href="https://github.com/czech-grammar/nouns">czech-grammar/nouns</a>. Word forms: <a href="https://cs.wiktionary.org/">Wikislovník</a> (CC BY-SA). Word order by frequency: SYN2015 corpus.</p>
+    <p>Progress is stored in this browser only; export it to move devices.</p>
+  </div>
+</section>
 
-  <!-- done / waiting -->
-  <section id="done" hidden>
-    <p class="big" id="done-msg"></p>
-    <button class="primary" id="done-home">Back</button>
-  </section>
-
-  <p id="loading" class="hint">Loading cards…</p>
-</main>
-
-<footer>
-  Pictures and words from <a href="https://github.com/czech-grammar/nouns">czech-grammar/nouns</a>.
-  Progress is stored in this browser only; export it to move devices.
-</footer>
+<div class="modal" id="modal" hidden></div>
+<div class="modal" id="sleep" hidden>
+  <div class="modal-box panel sleep" role="alertdialog" aria-modal="true" aria-labelledby="sleep-h">
+    <img src="icon.svg" alt="" width="72" height="60">
+    <h2 id="sleep-h">Slovíčka is open in another tab</h2>
+    <p>To keep your progress safe, only one tab plays at a time.</p>
+    <button class="primary" id="wake">Play here instead</button>
+  </div>
+</div>
+<canvas id="confetti" aria-hidden="true" hidden></canvas>
 
 <script src="srs.js"></script>
 <script src="app.js"></script>
+</body>
+</html>

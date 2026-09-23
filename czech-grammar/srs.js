@@ -31,7 +31,9 @@ const SRS = (() => {
   }
 
   // grade: 0 again, 1 hard, 2 good, 3 easy. Returns a new state; does not mutate.
-  function schedule(s, grade, now, { noFuzz = false } = {}) {
+  // noLate: give no extra credit for answering late (used when the test was easy, like a
+  // multiple choice on a long-overdue word)
+  function schedule(s, grade, now, { noFuzz = false, noLate = false } = {}) {
     const c = { ...s, reps: s.reps + 1 };
     delete c.isNew;
     const toReview = (ivl) => {
@@ -55,7 +57,7 @@ const SRS = (() => {
     }
 
     // review card; a card answered late gets credit for the extra time it held
-    const late = Math.max(0, dayOf(now) - dayOf(c.due));
+    const late = noLate ? 0 : Math.max(0, dayOf(now) - dayOf(c.due));
     if (grade === 0) {
       return { ...c, lapses: c.lapses + 1, ease: Math.max(MIN_EASE, c.ease - 0.2),
                ivl: Math.max(1, Math.round(c.ivl * 0.5)), step: 0, due: now + RELEARN_STEPS[0] * MIN };
