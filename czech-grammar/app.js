@@ -61,6 +61,7 @@
   const LEARN_AHEAD_1 = 1 * SRS.MIN;  // later learning steps keep their real gap
   const INTRO_GAP = 45e3;
   const NEW_PER_LESSON = 5;
+  const NEW_WINDOW = 25;   // a new word is drawn at random from the next 25 by frequency, so no two starts match
   const CATCHUP = 60;
   const XP = { intro: 2, pick: 8, listen: 8, spell: 12, type: 15, form: 8, gender: 5, quest: 15 };
   const GOALS = [[50, 'Casual'], [150, 'Regular'], [300, 'Serious'], [500, 'Intense']];
@@ -220,7 +221,8 @@
   // The next card to study, or null. `avoid` keeps a card from coming twice in a row.
   function pickNext({ avoid = null, mixNew = false, allowNew = true } = {}) {
     const now = Date.now();
-    let learnNow = null, learnSoon = null, review = null, reviewScore = -1;
+    let learnSoon = null, review = null, reviewScore = -1;
+    const learnNow = [];
     const unquizzed = [];
     for (const [cs, s] of Object.entries(db.cards)) {
       if (!BY_CS.has(cs)) continue;
@@ -228,15 +230,16 @@
       if (cs === avoid) continue;
       if (s.step >= 0) {
         const ahead = s.step === 0 ? LEARN_AHEAD_0 : LEARN_AHEAD_1;
-        if (s.due <= now) { if (!learnNow || s.due < db.cards[learnNow].due) learnNow = cs; }
+        if (s.due <= now) learnNow.push(cs);
         else if (s.due - now <= ahead && (!learnSoon || s.due < db.cards[learnSoon].due)) learnSoon = cs;
       } else if (s.due <= now) {
-        // most overdue relative to its interval first
-        const score = (now - s.due) / (Math.max(1, s.ivl) * SRS.DAY);
+        // most overdue relative to its interval first, jittered so words due together come in a new order
+        const score = (now - s.due) / (Math.max(1, s.ivl) * SRS.DAY) * (0.75 + Math.random() * 0.5);
         if (score > reviewScore) { review = cs; reviewScore = score; }
       }
     }
-    if (learnNow) return BY_CS.get(learnNow);
+    // any learning word that is due, in no fixed order
+    if (learnNow.length) return BY_CS.get(pick(learnNow));
     if (review && counts(now).capped) review = null;
     // introduced words are quizzed soon: at most two wait for their first quiz
     if (unquizzed.length >= 2) {
@@ -244,7 +247,12 @@
       if (q) return BY_CS.get(q);
     }
     const c = counts(now);
-    const fresh = allowNew && c.fresh > 0 ? CARDS.find(x => !db.cards[x.cs] && inLevels(x)) : null;
+    let fresh = null;
+    if (allowNew && c.fresh > 0) {
+      const next = [];
+      for (const x of CARDS) if (!db.cards[x.cs] && inLevels(x) && next.push(x) >= NEW_WINDOW) break;
+      fresh = next.length ? pick(next) : null;
+    }
     if (fresh && (!review || mixNew)) return fresh;
     if (review) return BY_CS.get(review);
     if (learnSoon) return BY_CS.get(learnSoon);
