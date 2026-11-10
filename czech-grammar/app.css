@@ -347,3 +347,11 @@ body.fb-open .toast { bottom: auto; top: calc(60px + env(safe-area-inset-top)); 
 .typeform.cloze { align-items: center; flex-wrap: wrap; justify-content: center; }
 .typeform.cloze .frame { margin: 0; font-size: 1.4rem; }
 .typeform.cloze input { flex: 1 1 8em; }
+
+/* placement */
+#place-fg { height: 100%; width: 0; background: var(--gold); border-radius: 99px; transition: width .3s ease; }
+.place-sub { color: var(--muted); font-weight: 700; font-size: .75em; margin-left: 6px; }
+.tiles.two { grid-template-columns: 1fr 1fr; }
+.place-sort .opt { font-size: 1.15rem; padding: 18px 10px; }
+.place-prev { min-height: 2.6em; }
+.place-prev .small { width: auto; display: inline-block; margin: 0 0 0 8px; padding: 4px 10px; }

@@ -73,6 +73,7 @@
   <p class="hint" id="home-hint"></p>
   <button class="secondary" id="more-new" hidden>+5 new words</button>
   <button class="secondary" id="practice" hidden>Free practice</button>
+  <button class="secondary" id="place-home" hidden>I already know some Czech · placement test</button>
 
   <section class="quests" aria-labelledby="quests-h">
     <h2 id="quests-h">Today's quests</h2>
@@ -86,6 +87,15 @@
 
   <div class="levelbar" aria-hidden="true"><div id="levelbar-fg"></div></div>
   <p class="xp-line" id="xp-line"></p>
+</section>
+
+<!-- placement -->
+<section id="placement" class="screen" hidden>
+  <header class="lesson-top">
+    <button class="icon-btn" id="place-quit" aria-label="Stop the placement test">✕</button>
+    <div class="progress" aria-hidden="true"><div id="place-fg"></div></div>
+  </header>
+  <div class="stage" id="place-stage"></div>
 </section>
 
 <!-- lesson -->
@@ -154,10 +164,13 @@
       <button id="import-btn">Import</button>
       <button id="reset" class="danger">Reset</button>
     </div>
+    <div class="row buttons">
+      <button id="place-settings">Placement test: skip the words you know</button>
+    </div>
     <input type="file" id="import" accept="application/json,.json" class="sr-only" tabindex="-1" aria-hidden="true">
   </div>
   <div class="about">
-    <p>Keys: <kbd>1</kbd>–<kbd>4</kbd> answer, <kbd>Enter</kbd> continue, type letters in spelling rounds, <kbd>Backspace</kbd> removes a letter, <kbd>Esc</kbd> ends the lesson.</p>
+    <p>Keys: <kbd>1</kbd>–<kbd>4</kbd> answer, <kbd>Enter</kbd> continue, type letters in spelling rounds, <kbd>Backspace</kbd> removes a letter, <kbd>Esc</kbd> ends the lesson. Placement test: <kbd>→</kbd> know it, <kbd>←</kbd> not yet, <kbd>Backspace</kbd> undo.</p>
     <p>Pictures and words: <a href="https://github.com/czech-grammar/nouns">czech-grammar/nouns</a>. Word forms: <a href="https://cs.wiktionary.org/">Wikislovník</a> (CC BY-SA). Word order by frequency: SYN2015 corpus.</p>
     <p>Progress is stored in this browser only; export it to move devices.</p>
   </div>
