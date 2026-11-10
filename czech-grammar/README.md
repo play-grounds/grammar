@@ -30,13 +30,14 @@ two), three daily quests, levels, a sticker album by level and topic (★ learni
 and tomorrow's preview, and an .ics daily reminder once the streak reaches 3.
 
 **Placement test** (home, while the album is small, and Settings) for players who
-already know many words. The deck in study order is cut into bands of 100; five words
-a band are typed (accents don't matter), a band with 4–5 right counts as known and a
-band with 0–1 ends the test. The words of the in-between bands and the last band are
-sorted by a quick know it / not yet on the Czech word (arrow keys, undo). Known words
-become reviews spread over 10–70 days, so each is still typed once and any miss is
-relearned; new words then start where the gap is. Words already in the album are
-never touched, and nothing is saved until the result is confirmed.
+already know Czech. Pick the level you have passed: every noun up to it goes into the
+album as known, with no questions. The next two levels get a quick check of about 20
+Czech words each (spread over the level's frequency order), tapped know it / not yet
+(arrow keys, undo; no typing). 80%+ known: the whole level counts as known; 40–80%:
+its most common words up to that share; less: new words start there. Known words
+become reviews spread over 10–90 days, so each still comes back once and any gap is
+relearned. Words already in the album are never touched, and nothing is saved until
+the result is confirmed.
 
 New words come in by corpus frequency (SYN2015), concrete words first, at most
 5 per lesson before they are quizzed. After a break, catch-up caps reviews at 60
