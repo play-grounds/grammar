@@ -352,6 +352,9 @@ body.fb-open .toast { bottom: auto; top: calc(60px + env(safe-area-inset-top)); 
 #place-fg { height: 100%; width: 0; background: var(--gold); border-radius: 99px; transition: width .3s ease; }
 .place-sub { color: var(--muted); font-weight: 700; font-size: .75em; margin-left: 6px; }
 .tiles.two { grid-template-columns: 1fr 1fr; }
+.options.place-levels { grid-template-columns: 1fr 1fr; }
+.place-levels .opt { font-size: 1.15rem; padding: 16px 10px; }
+.place-levels .opt:first-child { grid-column: 1 / -1; }
 .place-sort .opt { font-size: 1.15rem; padding: 18px 10px; }
 .place-prev { min-height: 2.6em; }
 .place-prev .small { width: auto; display: inline-block; margin: 0 0 0 8px; padding: 4px 10px; }
