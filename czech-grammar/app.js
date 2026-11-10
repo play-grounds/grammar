@@ -338,7 +338,7 @@
 
   // ---------- screens & history ----------
   // Leaving home pushes one history entry, so the phone's back button returns home (or ends a lesson).
-  const SCREENS = ['loading', 'home', 'lesson', 'summary', 'album', 'settings'];
+  const SCREENS = ['loading', 'home', 'lesson', 'summary', 'album', 'settings', 'placement'];
   let pushed = false, ownBack = false;
   function show(id) {
     for (const s of SCREENS) $(s).hidden = s !== id;
@@ -440,6 +440,7 @@
     $('more-new').hidden = !offerMore;
     $('more-new').className = offerMore ? 'primary big' : 'secondary';
     $('practice').hidden = !!next || offerMore || metCards().length < 4;
+    $('place-home').hidden = c.inAlbum >= 30;
     $('home-hint').textContent = next ? (c.backlog ? `Catching up after a break: ${CATCHUP} reviews a day, new words wait until the backlog shrinks.` : '') :
       c.capped ? 'Catch-up done for today. The rest wait for tomorrow.' :
       c.nextLearn < Infinity ? `All caught up. The next word is back in ${SRS.label(c.nextLearn - Date.now())}.` :
@@ -1210,6 +1211,167 @@
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
 
+  // ---------- placement ----------
+  // For a player who already knows many words. The deck (in study order: A1 by frequency,
+  // then A2, …) is cut into bands of 100. Five words a band are typed (picture + English →
+  // Czech); a band with 4–5 right counts as known, a band with 0–1 ends the test. Words in
+  // the in-between bands and the last band are sorted by a quick "know it / not yet" on the
+  // Czech word. Known words become reviews spread over the coming weeks, so each one still
+  // gets typed once and a wrong guess is relearned. Words already in the album are untouched.
+  const BAND = 100, PER_BAND = 5;
+  const SPREAD = { typed: [28, 70], band: [14, 70], told: [10, 45] };   // days until the first review
+  let place = null;
+  function startPlacement() {
+    const bands = [];
+    for (let i = 0; i < CARDS.length; i += BAND) bands.push(CARDS.slice(i, i + BAND).filter(c => !db.cards[c.cs]));
+    place = { bands, b: 0, stop: -1, score: [], typed: new Map(), queue: [], phase: 'test', sort: [], si: 0, told: new Map(), undo: [] };
+    show('placement');
+    nextBand();
+  }
+  function nextBand() {
+    // skip bands with nothing left to test
+    while (place.b < place.bands.length && place.bands[place.b].length < PER_BAND) {
+      place.score[place.b] = null; place.b++;
+    }
+    if (place.b >= place.bands.length) return startSort();
+    place.queue = shuffle([...place.bands[place.b]]).slice(0, PER_BAND);
+    place.right = 0;
+    placeAsk();
+  }
+  const placeBar = (f) => { $('place-fg').style.width = (100 * Math.min(1, f)) + '%'; };
+  function placeAsk() {
+    const card = place.queue[0];
+    placeBar(place.b / place.bands.length);
+    $('place-stage').innerHTML = `
+      <h2 class="prompt" tabindex="-1">Placement · words ${place.b * BAND + 1}–${Math.min(CARDS.length, (place.b + 1) * BAND)}
+        <small class="place-sub">${PER_BAND - place.queue.length + 1} / ${PER_BAND}</small></h2>
+      <article class="card"><div class="pic">${svgOf(card)}</div><div class="en">${esc(card.en)}</div></article>
+      <form class="typeform" id="place-form" autocomplete="off">
+        <input id="place-typed" lang="cs" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done"
+          aria-label="Czech word for ${esc(card.en)}" placeholder="Czech word">
+        <button class="primary" type="submit">Check</button>
+      </form>
+      <p class="type-note" id="place-note" aria-live="polite">Accents don't matter here.</p>
+      <div class="spell-actions"><button class="secondary small" id="place-skip">I don't know</button></div>`;
+    const input = $('place-typed');
+    $('place-form').addEventListener('submit', (e) => { e.preventDefault(); if (input.value.trim()) placeAnswer(input.value); });
+    $('place-skip').addEventListener('click', () => placeAnswer(''));
+    announce(`Type the Czech word for ${card.en}.`);
+    setTimeout(() => input.focus({ preventScroll: true }), 50);
+  }
+  function placeAnswer(value) {
+    const card = place.queue.shift(), v = bare(clean(value));
+    const syn = CARDS.find(c => bare(clean(c.cs)) === v && SYN.has(c.cs) && SYN.get(c.cs) === SYN.get(card.cs));
+    const ok = !!v && (v === bare(clean(card.cs)) || !!syn);
+    place.typed.set(card.cs, ok);
+    if (ok) { place.right++; sfx.right(); } else sfx.wrong();
+    if (place.queue.length) return placeAsk();
+    place.score[place.b] = place.right;
+    if (place.right <= 1) { place.stop = place.b; place.b++; return startSort(); }
+    place.b++;
+    nextBand();
+  }
+  // Words left to sort by hand: those in bands that were neither clearly known nor
+  // clearly unknown, and the band the test stopped on.
+  function startSort() {
+    place.phase = 'sort';
+    const last = place.stop;
+    place.sort = [];
+    place.score.forEach((s, i) => {
+      if (s === null || (s >= PER_BAND - 1 && i !== last)) return;
+      place.sort.push(...place.bands[i].filter(c => !place.typed.has(c.cs)));
+    });
+    place.si = 0;
+    if (!place.sort.length) return placeDone();
+    sortAsk();
+  }
+  function sortAsk() {
+    const card = place.sort[place.si];
+    placeBar(place.si / place.sort.length);
+    const prev = place.undo[place.undo.length - 1];
+    $('place-stage').innerHTML = `
+      <h2 class="prompt" tabindex="-1">Do you know it? <small class="place-sub">${place.si + 1} / ${place.sort.length}</small></h2>
+      <article class="card" data-gender="${card.g}">
+        <div class="cs"><span class="art" lang="cs">${article(card)}</span> <span lang="cs">${esc(card.cs)}</span></div>
+      </article>
+      <div class="options words place-sort">
+        <button class="opt" id="sort-no">Not yet</button>
+        <button class="opt" id="sort-yes">Know it</button>
+      </div>
+      <p class="hint place-prev">${prev ? `${place.told.get(prev.cs) ? '✓' : '·'} <b lang="cs">${esc(prev.cs)}</b> = ${esc(prev.en)}
+        <button class="secondary small" id="sort-undo">Undo</button>` : 'Be honest: every word you know comes back once, typed, in the next weeks.'}</p>
+      <div class="spell-actions"><button class="secondary small" id="sort-rest">Not yet for all the rest</button></div>`;
+    $('sort-no').addEventListener('click', () => sortAnswer(false));
+    $('sort-yes').addEventListener('click', () => sortAnswer(true));
+    if (prev) $('sort-undo').addEventListener('click', sortUndo);
+    $('sort-rest').addEventListener('click', () => { place.si = place.sort.length; placeDone(); });
+    announce(`${article(card)} ${card.cs}. Do you know it?`);
+  }
+  function sortAnswer(yes) {
+    const card = place.sort[place.si];
+    place.told.set(card.cs, yes);
+    place.undo.push(card);
+    place.si++;
+    if (place.si >= place.sort.length) return placeDone();
+    sortAsk();
+  }
+  function sortUndo() {
+    const card = place.undo.pop();
+    if (!card) return;
+    place.told.delete(card.cs);
+    place.si = place.sort.indexOf(card);
+    sortAsk();
+  }
+  // What the test found, before anything is saved.
+  function placeKnown() {
+    const known = new Map();   // cs -> spread key
+    const last = place.stop;
+    place.score.forEach((s, i) => {
+      if (s === null || s < PER_BAND - 1 || i === last) return;
+      for (const c of place.bands[i]) if (!place.typed.has(c.cs)) known.set(c.cs, 'band');
+    });
+    for (const [cs, ok] of place.typed) if (ok) known.set(cs, 'typed');
+    for (const [cs, yes] of place.told) if (yes) known.set(cs, 'told');
+    return known;
+  }
+  function placeDone() {
+    place.phase = 'done';
+    placeBar(1);
+    const known = placeKnown();
+    const left = CARDS.filter(c => !db.cards[c.cs] && !known.has(c.cs));
+    const firstLeft = left[0];
+    const perDay = Math.round(known.size / 45);
+    $('place-stage').innerHTML = `
+      <h2 class="prompt" tabindex="-1">Placement done</h2>
+      <div class="tiles two">
+        <div class="tile"><b>${known.size}</b><span>words you know</span></div>
+        <div class="tile"><b>${left.length}</b><span>left to learn</span></div>
+      </div>
+      <p class="sum-note">The words you know go into your album as reviews, spread over the next weeks
+        (about ${perDay} a day). Each one is typed once; any you miss come back as learning words.</p>
+      ${firstLeft ? `<p class="sum-note">New words start at <b lang="cs">${esc(firstLeft.cs)}</b> (${firstLeft.level}).</p>` : ''}
+      <button class="primary big" id="place-apply" ${known.size ? '' : 'disabled'}>Add ${plural2(known.size, 'word', 'words')} to my album</button>
+      <button class="secondary" id="place-cancel">Cancel, change nothing</button>`;
+    $('place-apply').addEventListener('click', () => placeApply(known, firstLeft));
+    $('place-cancel').addEventListener('click', () => { place = null; goHome(); });
+    $('place-stage').querySelector('.prompt').focus({ preventScroll: true });
+  }
+  function placeApply(known, firstLeft) {
+    const day = today();
+    for (const [cs, how] of known) {
+      if (db.cards[cs]) continue;
+      const [lo, hi] = SPREAD[how];
+      const ivl = lo + rand(hi - lo + 1);
+      db.cards[cs] = { due: SRS.startOfDay(day + ivl), ivl, ease: 2.5, reps: 1, lapses: 0, step: -1 };
+    }
+    // new words keep coming in study order, from where the test found the gap
+    if (firstLeft) db.settings.levels = LEVELS.slice(0, LEVELS.indexOf(firstLeft.level) + 1);
+    save();
+    place = null;
+    goHome();
+    toast(`📒 ${plural2(known.size, 'word', 'words')} added to your album`);
+  }
+
   // ---------- settings ----------
   function renderSpeechSetting() {
     if (!db || !$('speech')) return;
@@ -1287,10 +1449,20 @@
   $('album-back').addEventListener('click', () => goHome());
   $('open-settings').addEventListener('click', openSettings);
   $('settings-back').addEventListener('click', () => goHome());
+  $('place-home').addEventListener('click', startPlacement);
+  $('place-settings').addEventListener('click', startPlacement);
+  $('place-quit').addEventListener('click', () => { place = null; goHome(); });
 
   document.addEventListener('keydown', (e) => {
     if (asleep || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
     if (!$('modal').hidden) { if (e.key === 'Escape') closeModal(); return; }
+    if (!$('placement').hidden && place) {
+      if (e.key === 'Escape') { place = null; return goHome(); }
+      if (place.phase === 'sort' && e.key === 'ArrowRight') { e.preventDefault(); sortAnswer(true); }
+      else if (place.phase === 'sort' && e.key === 'ArrowLeft') { e.preventDefault(); sortAnswer(false); }
+      else if (place.phase === 'sort' && (e.key === 'Backspace' || e.key === 'z')) { e.preventDefault(); sortUndo(); }
+      return;
+    }
     if ($('lesson').hidden) {
       if ((!$('album').hidden || !$('settings').hidden || !$('summary').hidden) && e.key === 'Escape') goHome();
       return;
